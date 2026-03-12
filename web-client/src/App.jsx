@@ -324,7 +324,7 @@ const MasterPage = ({ type }) => {
   const [items, setItems] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
-  const [formData, setFormData] = useState({ name: '', address: '', gstin: '', sacCode: '', price: '', description: '', taxPercentage: '', type: 'Service' });
+  const [formData, setFormData] = useState({ name: '', address: '', gstin: '', sacCode: '', price: '', description: '', taxPercentage: '' });
   const userRole = JSON.parse(localStorage.getItem('user') || '{}').role;
 
   useEffect(() => {
@@ -356,7 +356,6 @@ const MasterPage = ({ type }) => {
       price: item.price || '',
       description: item.description || '',
       taxPercentage: item.taxPercentage || '',
-      type: item.type || 'Service'
     });
     setShowForm(true);
   };
@@ -380,7 +379,7 @@ const MasterPage = ({ type }) => {
       }
       setShowForm(false);
       setEditingItem(null);
-      setFormData({ name: '', address: '', gstin: '', sacCode: '', price: '', description: '', taxPercentage: '', type: 'Service' });
+      setFormData({ name: '', address: '', gstin: '', sacCode: '', price: '', description: '', taxPercentage: '' });
       fetchItems();
     } catch (err) {
       alert('Operation failed');
@@ -396,7 +395,7 @@ const MasterPage = ({ type }) => {
         </div>
         <button className="btn btn-primary" onClick={() => {
           setEditingItem(null);
-          setFormData({ name: '', address: '', gstin: '', sacCode: '', price: '', description: '', taxPercentage: '', type: 'Service' });
+          setFormData({ name: '', address: '', gstin: '', sacCode: '', price: '', description: '', taxPercentage: '' });
           setShowForm(true);
         }}>
           <Plus size={20} /> Add {type}
@@ -430,13 +429,6 @@ const MasterPage = ({ type }) => {
             )}
             {type === 'Item' && (
               <>
-                <div className="input-group">
-                  <label>Type (Goods / Service)</label>
-                  <select value={formData.type} onChange={e => setFormData({ ...formData, type: e.target.value })} required>
-                    <option value="Goods">Goods</option>
-                    <option value="Service">Service</option>
-                  </select>
-                </div>
                 <div className="input-group">
                   <label>HSN/SAC Code</label>
                   <input type="text" value={formData.sacCode} onChange={e => setFormData({ ...formData, sacCode: e.target.value })} required />
@@ -477,7 +469,7 @@ const MasterPage = ({ type }) => {
                 <strong style={{ fontSize: '1.1rem', display: 'block' }}>{item.name}</strong>
                 {type === 'Item' ? (
                   <>
-                    <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>[{item.type}] {item.description}</p>
+                    <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>{item.description}</p>
                     <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
                       <span style={{ fontSize: '0.875rem', color: 'var(--secondary)', fontWeight: 600 }}>HSN/SAC: {item.sacCode}</span>
                       <span style={{ fontSize: '0.875rem', color: 'var(--primary)', fontWeight: 600 }}>Price: ₹{item.price}</span>
@@ -512,10 +504,12 @@ const CompanySettings = () => {
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     name: '', address: '', gstin: '', phone: '', mobile: '', email: '', signatory: '',
-    bank: { bankName: '', accountNo: '', ifsc: '', branch: '' },
-    logo: null
+    bank: { bankName: '', accountNo: '', ifsc: '' },
+    logo: null,
+    signature: null
   });
   const [logoPreview, setLogoPreview] = useState(null);
+  const [signaturePreview, setSignaturePreview] = useState(null);
 
   useEffect(() => {
     API.get('/companies').then(res => {
@@ -526,10 +520,12 @@ const CompanySettings = () => {
           name: c.name || '', address: c.address || '', gstin: c.gstin || '',
           phone: c.phone || '', mobile: c.mobile || '', email: c.email || '',
           signatory: c.signatory || '',
-          bank: c.bank || { bankName: '', accountNo: '', ifsc: '', branch: '' },
-          logo: c.logo || null
+          bank: c.bank || { bankName: '', accountNo: '', ifsc: '' },
+          logo: c.logo || null,
+          signature: c.signature || null
         });
         if (c.logo) setLogoPreview(c.logo);
+        if (c.signature) setSignaturePreview(c.signature);
       }
       setLoading(false);
     }).catch(() => setLoading(false));
@@ -554,6 +550,23 @@ const CompanySettings = () => {
   const handleRemoveLogo = () => {
     setLogoPreview(null);
     setFormData(prev => ({ ...prev, logo: null }));
+  };
+
+  const handleSignatureChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const base64 = ev.target.result;
+      setSignaturePreview(base64);
+      setFormData(prev => ({ ...prev, signature: base64 }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveSignature = () => {
+    setSignaturePreview(null);
+    setFormData(prev => ({ ...prev, signature: null }));
   };
 
   const handleSubmit = async (e) => {
@@ -647,22 +660,39 @@ const CompanySettings = () => {
 
         <div className="card shadow" style={{ marginBottom: '1.5rem' }}>
           <h3 style={{ marginBottom: '1.5rem', fontSize: '1.1rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem', color: 'var(--primary)' }}>Bank Details</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 1.5rem' }}>
-            <div className="input-group">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0 1.5rem' }}>
+            <div className="input-group" style={{ marginBottom: 0 }}>
               <label>Bank Name</label>
               <input type="text" value={formData.bank?.bankName || ''} onChange={e => handleBankChange('bankName', e.target.value)} />
             </div>
-            <div className="input-group">
+            <div className="input-group" style={{ marginBottom: 0 }}>
               <label>Account Number</label>
               <input type="text" value={formData.bank?.accountNo || ''} onChange={e => handleBankChange('accountNo', e.target.value)} />
             </div>
-            <div className="input-group">
+            <div className="input-group" style={{ marginBottom: 0 }}>
               <label>IFSC Code</label>
               <input type="text" value={formData.bank?.ifsc || ''} onChange={e => handleBankChange('ifsc', e.target.value)} />
             </div>
-            <div className="input-group" style={{ marginBottom: 0 }}>
-              <label>Branch</label>
-              <input type="text" value={formData.bank?.branch || ''} onChange={e => handleBankChange('branch', e.target.value)} />
+          </div>
+        </div>
+
+        <div className="card shadow" style={{ marginBottom: '1.5rem' }}>
+          <h3 style={{ marginBottom: '1.5rem', fontSize: '1.1rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem', color: 'var(--primary)' }}>Digital Signature</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+            {signaturePreview ? (
+              <div style={{ position: 'relative' }}>
+                <img src={signaturePreview} alt="Digital Signature" style={{ width: '180px', height: '80px', objectFit: 'contain', border: '1px solid #e2e8f0', borderRadius: '0.5rem', padding: '4px', background: '#fff' }} />
+                <button type="button" onClick={handleRemoveSignature} style={{ position: 'absolute', top: '-8px', right: '-8px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '50%', width: '22px', height: '22px', cursor: 'pointer', fontSize: '12px', lineHeight: '22px', textAlign: 'center' }}>✕</button>
+              </div>
+            ) : (
+              <div style={{ width: '180px', height: '80px', border: '2px dashed #e2e8f0', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>No Signature</div>
+            )}
+            <div>
+              <label style={{ display: 'inline-block', padding: '0.5rem 1rem', background: 'var(--primary)', color: '#fff', borderRadius: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
+                {signaturePreview ? 'Change Signature' : 'Upload Signature'}
+                <input type="file" accept="image/*" onChange={handleSignatureChange} style={{ display: 'none' }} />
+              </label>
+              <p style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>PNG or JPG. Will appear on invoices.</p>
             </div>
           </div>
         </div>
@@ -686,10 +716,11 @@ const InvoiceForm = () => {
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [billNo, setBillNo] = useState('');
+  const [billDate, setBillDate] = useState(new Date().toISOString().split('T')[0]);
 
   // Dynamic Items State
   const [invoiceItems, setInvoiceItems] = useState([
-    { description: '', sacCode: '', amount: 0, taxPercentage: 0, quantity: 1, type: 'Service' }
+    { description: '', sacCode: '', amount: 0, taxPercentage: 0 }
   ]);
 
   const [loading, setLoading] = useState(false);
@@ -727,21 +758,23 @@ const InvoiceForm = () => {
           sacCode: it.sacCode || it.sac_code || '',
           amount: it.amount || 0,
           taxPercentage: it.taxPercentage || 0,
-          quantity: it.quantity || 1,
-          type: it.type || 'Service'
         }));
         setInvoiceItems(loadedItems);
+        if (inv.billDate) {
+          const parts = inv.billDate.split('/');
+          if (parts.length === 3) setBillDate(`${parts[2]}-${parts[1]}-${parts[0]}`);
+        }
       }).catch(() => alert('Failed to load invoice for editing.'));
     }
   }, [id, isEditMode]);
 
   const handleAddItem = () => {
-    setInvoiceItems([...invoiceItems, { description: '', sacCode: '', amount: 0, taxPercentage: 0, quantity: 1, type: 'Service' }]);
+    setInvoiceItems([...invoiceItems, { description: '', sacCode: '', amount: 0, taxPercentage: 0 }]);
   };
 
   const handleRemoveItem = (index) => {
     const newItems = invoiceItems.filter((_, i) => i !== index);
-    setInvoiceItems(newItems.length ? newItems : [{ description: '', sacCode: '', amount: 0, taxPercentage: 0, quantity: 1, type: 'Service' }]);
+    setInvoiceItems(newItems.length ? newItems : [{ description: '', sacCode: '', amount: 0, taxPercentage: 0 }]);
   };
 
   const handleItemChange = (index, field, value) => {
@@ -761,7 +794,6 @@ const InvoiceForm = () => {
         sacCode: selected.sacCode,
         amount: selected.price,
         taxPercentage: selected.taxPercentage || 0,
-        type: selected.type || 'Service',
       };
       setInvoiceItems(newItems);
     }
@@ -769,7 +801,7 @@ const InvoiceForm = () => {
 
   // Calculations
   const calculations = invoiceItems.reduce((acc, item) => {
-    const baseTotal = (parseFloat(item.amount) || 0) * (item.type === 'Service' ? 1 : (parseFloat(item.quantity) || 1));
+    const baseTotal = parseFloat(item.amount) || 0;
     const taxRate = parseFloat(item.taxPercentage) || 0;
 
     // Split tax evenly between SGST and CGST
@@ -820,7 +852,7 @@ const InvoiceForm = () => {
       vendor: selectedCompany,
       customer: selectedCustomer,
       billNo,
-      billDate: new Date().toLocaleDateString('en-IN'),
+      billDate: (() => { const [y,m,d] = billDate.split('-'); return `${d}/${m}/${y}`; })(),
       stateName: selectedCompany.address || "State", // Fallback
       placeOfSupply: selectedCustomer.address || "Place", // Fallback
       items: invoiceItems,
@@ -887,7 +919,7 @@ const InvoiceForm = () => {
             </div>
             <div className="input-group" style={{ marginBottom: 0 }}>
               <label>Bill Date</label>
-              <input type="text" value={new Date().toLocaleDateString('en-IN')} readOnly style={{ background: '#f8fafc', color: 'var(--text-muted)' }} />
+              <input type="date" value={billDate} onChange={e => setBillDate(e.target.value)} required />
             </div>
           </div>
         </div>
@@ -925,22 +957,11 @@ const InvoiceForm = () => {
                   </div>
                 </div>
 
-                {/* Row 2: Type, HSN/SAC, Qty, Rate, Tax - proportional widths */}
-                <div style={{ display: 'grid', gridTemplateColumns: '120px 120px 80px 1fr 100px', gap: '0.75rem' }}>
-                  <div className="input-group" style={{ marginBottom: 0 }}>
-                    <label>Type</label>
-                    <select value={item.type || 'Service'} disabled style={{ background: '#f1f5f9', color: 'var(--text-muted)', cursor: 'not-allowed' }}>
-                      <option value="Goods">Goods</option>
-                      <option value="Service">Service</option>
-                    </select>
-                  </div>
+                {/* Row 2: HSN/SAC, Rate, Tax */}
+                <div style={{ display: 'grid', gridTemplateColumns: '150px 1fr 120px', gap: '0.75rem' }}>
                   <div className="input-group" style={{ marginBottom: 0 }}>
                     <label>HSN/SAC</label>
                     <input type="text" value={item.sacCode} onChange={e => handleItemChange(index, 'sacCode', e.target.value)} />
-                  </div>
-                  <div className="input-group" style={{ marginBottom: 0 }}>
-                    <label>Qty</label>
-                    <input type="number" min="1" value={item.type === 'Service' ? '' : item.quantity} onChange={e => handleItemChange(index, 'quantity', e.target.value)} disabled={item.type === 'Service'} placeholder={item.type === 'Service' ? '-' : ''} />
                   </div>
                   <div className="input-group" style={{ marginBottom: 0 }}>
                     <label>Rate (₹)</label>

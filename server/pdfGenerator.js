@@ -108,14 +108,13 @@ function generateInvoicePDF(data, stream) {
     doc.font('Helvetica').fontSize(7.5);
     const items = data.items || [];
     items.forEach((item, index) => {
-        const qtyStr = item.type === 'Service' ? '-' : (item.quantity || 1).toString();
         const rate = parseFloat(item.amount) || 0;
-        const lineTotal = rate * (item.type === 'Service' ? 1 : (parseFloat(item.quantity) || 1));
+        const lineTotal = rate;
 
         doc.text(index + 1, colSno, y, { width: 22, align: 'center' });
         doc.text(item.description || '', colDesc, y, { width: colHsn - colDesc - 5 });
         doc.text(item.sacCode || '', colHsn, y, { width: colQty - colHsn, align: 'center' });
-        doc.text(qtyStr, colQty, y, { width: colRate - colQty, align: 'center' });
+        doc.text('-', colQty, y, { width: colRate - colQty, align: 'center' });
         doc.text(rate.toFixed(2), colRate, y, { width: colAmt - colRate, align: 'center' });
         doc.text(lineTotal.toFixed(2), colAmt, y, { width: colEnd - colAmt - 5, align: 'right' });
         y = Math.max(y + 14, doc.y + 5);
@@ -139,7 +138,7 @@ function generateInvoicePDF(data, stream) {
         currentY += 11;
     };
 
-    const subTotal = items.reduce((sum, item) => sum + (parseFloat(item.amount || 0) * (item.type === 'Service' ? 1 : parseFloat(item.quantity || 1))), 0);
+    const subTotal = items.reduce((sum, item) => sum + (parseFloat(item.amount || 0)), 0);
     drawRow('Sub Total:', subTotal.toFixed(2));
     drawRow(`SGST @ ${data.sgstRate || 0}%:`, (data.sgstAmount || 0).toFixed(2));
     drawRow(`CGST @ ${data.cgstRate || 0}%:`, (data.cgstAmount || 0).toFixed(2));
@@ -172,12 +171,21 @@ function generateInvoicePDF(data, stream) {
 
         // --- Signature (bottom right) ---
         const sigX = startX + width * 0.6;
-        const sigY = pageH - margin - 35;
-        const signatory = data.vendor?.signatory || '';
-        if (signatory) {
-            doc.fontSize(8).font('Helvetica-Bold').text(signatory, sigX, sigY + 18, { align: 'right', width: startX + width - sigX - 5 });
+        const sigY = pageH - margin - 45;
+        const sigWidth = startX + width - sigX - 5;
+        const signatureImage = data.vendor?.signature;
+        if (signatureImage) {
+            try {
+                const imgBuffer = Buffer.from(signatureImage.split(',')[1], 'base64');
+                doc.image(imgBuffer, sigX, sigY, { width: sigWidth, height: 30, fit: [sigWidth, 30], align: 'right' });
+            } catch (e) { /* ignore bad image */ }
+        } else {
+            const signatory = data.vendor?.signatory || '';
+            if (signatory) {
+                doc.fontSize(8).font('Helvetica-Bold').text(signatory, sigX, sigY + 18, { align: 'right', width: sigWidth });
+            }
         }
-        doc.fontSize(7).font('Helvetica').text('Authorised Signatory', sigX, pageH - margin - 10, { align: 'right', width: startX + width - sigX - 5 });
+        doc.fontSize(7).font('Helvetica').text('Authorised Signatory', sigX, pageH - margin - 10, { align: 'right', width: sigWidth });
 
     doc.end();
 }

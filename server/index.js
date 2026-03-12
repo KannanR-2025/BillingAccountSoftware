@@ -43,7 +43,8 @@ const mapInvoice = (row) => ({
 const mapCompany = (row) => ({
     ...row,
     bank: row.bank_details,
-    logo: row.logo || null
+    logo: row.logo || null,
+    signature: row.signature || null
 });
 
 const mapItem = (row) => ({
@@ -191,15 +192,15 @@ app.get('/api/companies', authenticateToken, async (req, res) => {
 });
 
 app.post('/api/companies', authenticateToken, async (req, res) => {
-    const { name, address, gstin, phone, mobile, email, signatory, bank, logo } = req.body;
+    const { name, address, gstin, phone, mobile, email, signatory, bank, logo, signature } = req.body;
     try {
         const existing = await db.query('SELECT id FROM companies LIMIT 1');
         if (existing.rows.length > 0) {
             return res.status(409).json({ message: 'A company already exists. Use update instead.' });
         }
         const result = await db.query(
-            'INSERT INTO companies (name, address, gstin, phone, mobile, email, signatory, bank_details, logo) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
-            [name, address, gstin, phone, mobile, email, signatory, JSON.stringify(bank), logo || null]
+            'INSERT INTO companies (name, address, gstin, phone, mobile, email, signatory, bank_details, logo, signature) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
+            [name, address, gstin, phone, mobile, email, signatory, JSON.stringify(bank), logo || null, signature || null]
         );
         res.status(201).json(mapCompany(result.rows[0]));
     } catch (err) {
@@ -209,11 +210,11 @@ app.post('/api/companies', authenticateToken, async (req, res) => {
 
 app.put('/api/companies/:id', authenticateToken, async (req, res) => {
     const id = parseInt(req.params.id);
-    const { name, address, gstin, phone, mobile, email, signatory, bank, logo } = req.body;
+    const { name, address, gstin, phone, mobile, email, signatory, bank, logo, signature } = req.body;
     try {
         const result = await db.query(
-            'UPDATE companies SET name=$1, address=$2, gstin=$3, phone=$4, mobile=$5, email=$6, signatory=$7, bank_details=$8, logo=$9 WHERE id=$10 RETURNING *',
-            [name, address, gstin, phone, mobile, email, signatory, JSON.stringify(bank), logo || null, id]
+            'UPDATE companies SET name=$1, address=$2, gstin=$3, phone=$4, mobile=$5, email=$6, signatory=$7, bank_details=$8, logo=$9, signature=$10 WHERE id=$11 RETURNING *',
+            [name, address, gstin, phone, mobile, email, signatory, JSON.stringify(bank), logo || null, signature || null, id]
         );
         if (result.rows.length === 0) return res.status(404).send('Company not found');
         res.json(mapCompany(result.rows[0]));
