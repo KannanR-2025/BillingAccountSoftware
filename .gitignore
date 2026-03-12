@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+server/node_modules/
+web-client/node_modules/
+
+# Build output
+web-client/dist/
+dist-iis/
+dist-iis.zip
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.*
+
+# OS
+.DS_Store
+
+# Test files
+test_invoice.pdf

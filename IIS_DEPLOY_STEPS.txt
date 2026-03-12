@@ -1,0 +1,99 @@
+=====================================================
+ BillingAccountSoftware — Windows IIS Deployment
+=====================================================
+
+PREREQUISITES (install once on Windows Server)
+-----------------------------------------------
+1. Node.js (LTS)          https://nodejs.org
+2. PostgreSQL             https://www.postgresql.org/download/windows/
+3. IIS (enable via Windows Features > Internet Information Services)
+4. URL Rewrite Module 2.1 https://www.iis.net/downloads/microsoft/url-rewrite
+5. iisnode                https://github.com/Azure/iisnode/releases
+   - Download: iisnode-full-v0.2.26-x64.msi (or latest)
+   - Run installer as Administrator
+
+STEP 1 — BUILD ON YOUR DEV MACHINE (Mac/Linux)
+-----------------------------------------------
+  chmod +x build-iis.sh
+  ./build-iis.sh
+
+  This creates: dist-iis/
+    ├── index.html
+    ├── assets/
+    ├── web.config
+    └── server/
+          ├── index.js
+          ├── db.js
+          ├── pdfGenerator.js
+          └── package.json
+
+STEP 2 — COPY TO WINDOWS SERVER
+---------------------------------
+  Copy contents of dist-iis/ to:
+    C:\inetpub\wwwroot\billing\
+
+STEP 3 — INSTALL NODE DEPENDENCIES ON SERVER
+---------------------------------------------
+  Open Command Prompt as Administrator:
+    cd C:\inetpub\wwwroot\billing\server
+    npm install --omit=dev
+
+STEP 4 — CONFIGURE POSTGRESQL
+-------------------------------
+  Edit C:\inetpub\wwwroot\billing\server\db.js
+  Update these values:
+    user: 'your_pg_username'
+    host: 'localhost'
+    database: 'postgres'
+    password: 'your_pg_password'
+    port: 5432
+
+  Then in psql or pgAdmin, create the DB user if needed:
+    CREATE USER billing_user WITH PASSWORD 'your_password';
+    GRANT ALL PRIVILEGES ON DATABASE postgres TO billing_user;
+
+STEP 5 — CREATE IIS SITE
+--------------------------
+  Option A: IIS Manager (GUI)
+    1. Open IIS Manager
+    2. Right-click "Sites" → "Add Website"
+    3. Site name: BillingSoftware
+    4. Physical path: C:\inetpub\wwwroot\billing
+    5. Port: 80 (or your preferred port)
+    6. Click OK
+
+  Option B: PowerShell (run as Administrator)
+    New-WebSite -Name "BillingSoftware" `
+      -PhysicalPath "C:\inetpub\wwwroot\billing" `
+      -Port 80 -Force
+
+STEP 6 — SET FOLDER PERMISSIONS
+----------------------------------
+  The IIS app pool identity needs read/write access:
+    icacls "C:\inetpub\wwwroot\billing" /grant "IIS AppPool\DefaultAppPool:(OI)(CI)F" /T
+
+  Also create the logs folder:
+    mkdir C:\inetpub\wwwroot\billing\iisnode-logs
+    icacls "C:\inetpub\wwwroot\billing\iisnode-logs" /grant "IIS AppPool\DefaultAppPool:(OI)(CI)F" /T
+
+STEP 7 — TEST THE DEPLOYMENT
+------------------------------
+  Open browser: http://localhost/
+  Login with: admin / admin
+
+TROUBLESHOOTING
+---------------
+- iisnode logs: C:\inetpub\wwwroot\billing\iisnode-logs\
+- Check IIS Event Viewer for handler errors
+- Verify iisnode is installed: IIS Manager > Handler Mappings (look for iisnode)
+- If 500.19 error: Check web.config syntax
+- If DB connection fails: Check PostgreSQL service is running (services.msc)
+- Port conflict on 3000: Not needed — iisnode uses named pipes internally
+
+NOTES
+-----
+- The Node.js server is managed entirely by IIS/iisnode (no separate process needed)
+- iisnode recycles the Node.js process automatically with the app pool
+- Default admin login: admin / admin (change after first login)
+- JWT secret is hardcoded in server/index.js — change before production use
+=====================================================
