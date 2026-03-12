@@ -38,7 +38,7 @@ function generateInvoicePDF(data, stream) {
         } catch (e) { /* skip if image fails */ }
     }
 
-    const vendorTextWidth = width / 2 - (vendorTextX - startX) - 10;
+    const vendorTextWidth = width * 0.63 - (vendorTextX - startX) - 10;
     doc.fontSize(10).font('Helvetica-Bold').text(data.vendor.name, vendorTextX, currentY + 5, { width: vendorTextWidth });
     doc.fontSize(8.5).font('Helvetica').text(data.vendor.address || '', vendorTextX, doc.y + 1, { width: vendorTextWidth });
     doc.text(`GSTIN: ${data.vendor.gstin || ''}`, vendorTextX, doc.y + 1);
@@ -50,7 +50,7 @@ function generateInvoicePDF(data, stream) {
     }
 
     // --- Bill Info Box (right) ---
-    const infoX = startX + width / 2 + 8;
+    const infoX = startX + width * 0.63 + 8;
     let infoY = vendorStartY + 5;
     const labelW = 70;
     const valX = infoX + labelW;
@@ -62,21 +62,21 @@ function generateInvoicePDF(data, stream) {
     doc.font('Helvetica-Bold').text(data.billDate, valX, infoY);
     infoY += 13;
     doc.font('Helvetica').text('State :', infoX, infoY);
-    doc.text('Tamil Nadu', valX, infoY, { width: width / 2 - labelW - 15 });
+    doc.text('Tamil Nadu', valX, infoY, { width: width * 0.37 - labelW - 15 });
     infoY += 13;
     doc.font('Helvetica').text('Place of Supply :', infoX, infoY);
-    doc.text('Tamil Nadu', valX, infoY, { width: width / 2 - labelW - 15 });
+    doc.text('Tamil Nadu', valX, infoY, { width: width * 0.37 - labelW - 15 });
 
     currentY = vendorStartY + 70;
     doc.moveTo(startX, currentY).lineTo(startX + width, currentY).stroke();
-    doc.moveTo(startX + width / 2, vendorStartY).lineTo(startX + width / 2, currentY).stroke();
+    doc.moveTo(startX + width * 0.63, vendorStartY).lineTo(startX + width * 0.63, currentY).stroke();
 
     // --- Customer Details ---
     const customerSectionStartY = currentY;
     const customer = data.customer || { name: 'Unknown', address: '', gstin: '' };
     doc.fontSize(8.5).font('Helvetica-Bold').text('BILL TO:', startX + 8, currentY + 5);
     doc.fontSize(9.5).text(customer.name, startX + 55, currentY + 5);
-    doc.fontSize(8.5).font('Helvetica').text(customer.address || '', startX + 8, doc.y + 2, { width: width / 2 - 15 });
+    doc.fontSize(8.5).font('Helvetica').text(customer.address || '', startX + 8, doc.y + 2, { width: width * 0.63 - 15 });
     doc.font('Helvetica-Bold').text(`GSTIN: ${customer.gstin || ''}`, startX + 8, doc.y + 2);
 
     // Bottom padding for customer section
