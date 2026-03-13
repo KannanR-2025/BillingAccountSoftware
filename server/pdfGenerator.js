@@ -42,11 +42,12 @@ function generateInvoicePDF(data, stream) {
     doc.fontSize(12).font('Helvetica-Bold').text(data.vendor.name, vendorTextX, currentY + 5, { width: vendorTextWidth });
     doc.fontSize(10.5).font('Helvetica').text(data.vendor.address || '', vendorTextX, doc.y + 1, { width: vendorTextWidth });
     doc.text(`GSTIN: ${data.vendor.gstin || ''}`, vendorTextX, doc.y + 1);
-    if (data.vendor.phone || data.vendor.mobile) {
-        doc.text(`Contact: ${data.vendor.phone || ''} ${data.vendor.mobile ? '/ ' + data.vendor.mobile : ''}`, vendorTextX, doc.y + 1);
-    }
-    if (data.vendor.email) {
-        doc.text(`Email: ${data.vendor.email}`, vendorTextX, doc.y + 1);
+    if (data.vendor.phone || data.vendor.mobile || data.vendor.email) {
+        const contactPart = (data.vendor.phone || data.vendor.mobile)
+            ? `Contact: ${data.vendor.phone || ''}${data.vendor.mobile ? ' / ' + data.vendor.mobile : ''}`
+            : '';
+        const emailPart = data.vendor.email ? `  |  Email: ${data.vendor.email}` : '';
+        doc.text(contactPart + emailPart, vendorTextX, doc.y + 1, { width: vendorTextWidth });
     }
 
     // --- Bill Info Box (right) ---
