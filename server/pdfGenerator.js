@@ -65,9 +65,9 @@ function generateInvoicePDF(data, stream) {
     doc.text('Tamil Nadu', valX, infoY, { width: width * 0.37 - labelW - 15 });
     infoY += 13;
     doc.font('Helvetica').text('Place of Supply :', infoX, infoY);
-    doc.text('Tamil Nadu', valX, infoY, { width: width * 0.37 - labelW - 15 });
+    doc.text('Tamil Nadu', infoX + 95, infoY, { width: width * 0.37 - 95 - 5 });
 
-    currentY = vendorStartY + 70;
+    currentY = vendorStartY + 90;
     doc.moveTo(startX, currentY).lineTo(startX + width, currentY).stroke();
     doc.moveTo(startX + width * 0.63, vendorStartY).lineTo(startX + width * 0.63, currentY).stroke();
 
@@ -85,14 +85,14 @@ function generateInvoicePDF(data, stream) {
 
     // --- Table Header ---
     const colSno  = startX + 5;
-    const colDesc = startX + 28;
+    const colDesc = startX + 42;
     const colHsn  = startX + width * 0.65;
     const colAmt  = startX + width * 0.846;
     const colEnd  = startX + width;
 
     const tableHeaderY = currentY;
     doc.fontSize(10.5).font('Helvetica-Bold');
-    doc.text('S.No', colSno, tableHeaderY + 4, { width: 22, align: 'center' });
+    doc.text('S.No', colSno, tableHeaderY + 4, { width: 36, align: 'center' });
     doc.text('Particulars / Description', colDesc, tableHeaderY + 4, { width: colHsn - colDesc - 5 });
     doc.text('HSN/SAC', colHsn, tableHeaderY + 4, { width: colAmt - colHsn, align: 'center' });
     doc.text('Amount (Rs.)', colAmt, tableHeaderY + 4, { width: colEnd - colAmt - 5, align: 'right' });
@@ -114,7 +114,7 @@ function generateInvoicePDF(data, stream) {
         const lineTotal = parseFloat(item.amount) || 0;
 
         doc.font('Helvetica').fontSize(11);
-        doc.text(index + 1, colSno, y, { width: 22, align: 'center' });
+        doc.text(index + 1, colSno, y, { width: 36, align: 'center' });
         doc.text(item.description || '', colDesc, y, { width: colHsn - colDesc - 5 });
         doc.text(item.sacCode || '', colHsn, y, { width: colAmt - colHsn, align: 'center' });
         doc.text(lineTotal.toFixed(2), colAmt, y, { width: colEnd - colAmt - 5, align: 'right' });
@@ -123,7 +123,7 @@ function generateInvoicePDF(data, stream) {
             doc.text(item.itemDescription, colDesc, doc.y + 1, { width: colHsn - colDesc - 5 });
             doc.fillColor('black');
         }
-        y = Math.max(y + 15, doc.y + 5);
+        y = Math.max(y + 12, doc.y + 4);
     });
 
     // Dynamic tax section position — leave space for bottom content
