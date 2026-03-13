@@ -876,7 +876,7 @@ const InvoiceForm = () => {
       }
       navigate('/invoices');
     } catch (err) {
-      alert(`Failed to ${isEditMode ? 'update' : 'generate'} invoice`);
+      alert(err.response?.data?.message || `Failed to ${isEditMode ? 'update' : 'generate'} invoice`);
     } finally {
       setLoading(false);
     }

@@ -312,6 +312,10 @@ app.delete('/api/items/:id', authenticateToken, requireAdmin, async (req, res) =
 app.post('/api/invoices', authenticateToken, async (req, res) => {
     const { vendor, customer, billNo, billDate, stateName, placeOfSupply, items, sgstRate, sgstAmount, cgstRate, cgstAmount, totalAmount, amountInWords } = req.body;
     try {
+        const dup = await db.query('SELECT id FROM invoices WHERE bill_no = $1', [billNo]);
+        if (dup.rows.length > 0) {
+            return res.status(409).json({ message: `Invoice number "${billNo}" already exists. Please use a unique invoice number.` });
+        }
         const result = await db.query(
             `INSERT INTO invoices (
                 vendor_id, customer_id, bill_no, bill_date, state_name, place_of_supply, 
@@ -386,6 +390,10 @@ app.put('/api/invoices/:id', authenticateToken, async (req, res) => {
     const id = parseInt(req.params.id);
     const { vendor, customer, billNo, billDate, stateName, placeOfSupply, items, sgstRate, sgstAmount, cgstRate, cgstAmount, totalAmount, amountInWords } = req.body;
     try {
+        const dup = await db.query('SELECT id FROM invoices WHERE bill_no = $1 AND id != $2', [billNo, id]);
+        if (dup.rows.length > 0) {
+            return res.status(409).json({ message: `Invoice number "${billNo}" already exists. Please use a unique invoice number.` });
+        }
         const result = await db.query(
             `UPDATE invoices SET
                 vendor_id = $1, customer_id = $2, bill_no = $3, bill_date = $4, state_name = $5, place_of_supply = $6, 
