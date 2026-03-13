@@ -87,7 +87,7 @@ function generateInvoicePDF(data, stream) {
     const colSno  = startX + 5;
     const colDesc = startX + 28;
     const colHsn  = startX + width * 0.50;
-    const colAmt  = startX + width * 0.65;
+    const colAmt  = startX + width * 0.78;
     const colEnd  = startX + width;
 
     const tableHeaderY = currentY;
