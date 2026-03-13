@@ -67,7 +67,7 @@ function generateInvoicePDF(data, stream) {
     doc.font('Helvetica').text('Place of Supply :', infoX, infoY);
     doc.text('Tamil Nadu', infoX + 95, infoY, { width: width * 0.37 - 95 - 5 });
 
-    currentY = vendorStartY + 90;
+    currentY = vendorStartY + 76;
     doc.moveTo(startX, currentY).lineTo(startX + width, currentY).stroke();
     doc.moveTo(startX + width * 0.63, vendorStartY).lineTo(startX + width * 0.63, currentY).stroke();
 
@@ -80,7 +80,7 @@ function generateInvoicePDF(data, stream) {
     doc.font('Helvetica-Bold').text(`GSTIN: ${customer.gstin || ''}`, startX + 8, doc.y + 2);
 
     // Bottom padding for customer section
-    currentY = Math.max(customerSectionStartY + 44, doc.y + 8);
+    currentY = Math.max(customerSectionStartY + 36, doc.y + 6);
     doc.moveTo(startX, currentY).lineTo(startX + width, currentY).stroke();
 
     // --- Table Header ---
@@ -97,7 +97,7 @@ function generateInvoicePDF(data, stream) {
     doc.text('HSN/SAC', colHsn, tableHeaderY + 4, { width: colAmt - colHsn, align: 'center' });
     doc.text('Amount (Rs.)', colAmt, tableHeaderY + 4, { width: colEnd - colAmt - 5, align: 'right' });
 
-    currentY += 18;
+    currentY += 16;
     doc.moveTo(startX, currentY).lineTo(startX + width, currentY).stroke();
 
     // Vertical column lines helper
@@ -141,7 +141,7 @@ function generateInvoicePDF(data, stream) {
         doc.font(isBold ? 'Helvetica-Bold' : 'Helvetica').fontSize(11);
         doc.text(label, labelX, currentY, { width: colAmt - labelX - 5, align: 'right' });
         doc.text(value, amtRightX, currentY, { width: amtRightW, align: 'right' });
-        currentY += 12;
+        currentY += 11;
     };
 
     const subTotal = items.reduce((sum, item) => sum + (parseFloat(item.amount || 0)), 0);
@@ -160,7 +160,7 @@ function generateInvoicePDF(data, stream) {
     // --- Bank Details (absolute bottom left) ---
     const bank = data.bank || data.vendor?.bank_details;
     if (bank && (bank.bankName || bank.name)) {
-        const bankBoxY = pageH - margin - 48;
+        const bankBoxY = pageH - margin - 58;
         doc.fontSize(10).font('Helvetica-Bold').text('Bank Details:', startX + 10, bankBoxY + 4);
         doc.font('Helvetica');
         let y = doc.y + 1;
@@ -173,7 +173,7 @@ function generateInvoicePDF(data, stream) {
 
     // --- Signature (bottom right) ---
     const sigX = startX + width * 0.6;
-    const sigY = pageH - margin - 48;
+    const sigY = pageH - margin - 58;
     const sigWidth = startX + width - sigX - 5;
     const signatureImage = data.vendor?.signature;
     if (signatureImage) {
@@ -187,7 +187,7 @@ function generateInvoicePDF(data, stream) {
             doc.fontSize(11).font('Helvetica-Bold').text(signatory, sigX, sigY + 18, { align: 'right', width: sigWidth });
         }
     }
-    doc.fontSize(10).font('Helvetica').text('Authorised Signatory', sigX, pageH - margin - 10, { align: 'right', width: sigWidth });
+    doc.fontSize(10).font('Helvetica').text('Authorised Signatory', sigX, pageH - margin - 18, { align: 'right', width: sigWidth });
 
     doc.end();
 }
