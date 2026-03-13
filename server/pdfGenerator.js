@@ -53,20 +53,21 @@ function generateInvoicePDF(data, stream) {
     // --- Bill Info Box (right) ---
     const infoX = startX + width * 0.63 + 8;
     let infoY = vendorStartY + 5;
-    const labelW = 70;
+    const labelW = 95;
     const valX = infoX + labelW;
+    const valW = width * 0.37 - labelW - 10;
 
     doc.fontSize(10.5).font('Helvetica').text('Invoice No :', infoX, infoY);
-    doc.font('Helvetica-Bold').text(data.billNo, valX, infoY);
+    doc.font('Helvetica-Bold').text(data.billNo, valX, infoY, { width: valW });
     infoY += 13;
     doc.font('Helvetica').text('Date :', infoX, infoY);
-    doc.font('Helvetica-Bold').text(data.billDate, valX, infoY);
+    doc.font('Helvetica-Bold').text(data.billDate, valX, infoY, { width: valW });
     infoY += 13;
     doc.font('Helvetica').text('State :', infoX, infoY);
-    doc.text('Tamil Nadu', valX, infoY, { width: width * 0.37 - labelW - 15 });
+    doc.text('Tamil Nadu', valX, infoY, { width: valW });
     infoY += 13;
     doc.font('Helvetica').text('Place of Supply :', infoX, infoY);
-    doc.text('Tamil Nadu', infoX + 95, infoY, { width: width * 0.37 - 95 - 5 });
+    doc.text('Tamil Nadu', valX, infoY, { width: valW });
 
     currentY = vendorStartY + 76;
     doc.moveTo(startX, currentY).lineTo(startX + width, currentY).stroke();
