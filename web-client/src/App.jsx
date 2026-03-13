@@ -720,7 +720,7 @@ const InvoiceForm = () => {
 
   // Dynamic Items State
   const [invoiceItems, setInvoiceItems] = useState([
-    { description: '', sacCode: '', amount: 0, taxPercentage: 0 }
+    { description: '', itemDescription: '', sacCode: '', amount: 0, taxPercentage: 0 }
   ]);
 
   const [loading, setLoading] = useState(false);
@@ -755,6 +755,7 @@ const InvoiceForm = () => {
         // Map saved items or fallback structure
         const loadedItems = inv.items.map(it => ({
           description: it.description,
+          itemDescription: it.itemDescription || '',
           sacCode: it.sacCode || it.sac_code || '',
           amount: it.amount || 0,
           taxPercentage: it.taxPercentage || 0,
@@ -769,12 +770,12 @@ const InvoiceForm = () => {
   }, [id, isEditMode]);
 
   const handleAddItem = () => {
-    setInvoiceItems([...invoiceItems, { description: '', sacCode: '', amount: 0, taxPercentage: 0 }]);
+    setInvoiceItems([...invoiceItems, { description: '', itemDescription: '', sacCode: '', amount: 0, taxPercentage: 0 }]);
   };
 
   const handleRemoveItem = (index) => {
     const newItems = invoiceItems.filter((_, i) => i !== index);
-    setInvoiceItems(newItems.length ? newItems : [{ description: '', sacCode: '', amount: 0, taxPercentage: 0 }]);
+    setInvoiceItems(newItems.length ? newItems : [{ description: '', itemDescription: '', sacCode: '', amount: 0, taxPercentage: 0 }]);
   };
 
   const handleItemChange = (index, field, value) => {
@@ -955,6 +956,11 @@ const InvoiceForm = () => {
                     <label>Description</label>
                     <input type="text" value={item.description} onChange={e => handleItemChange(index, 'description', e.target.value)} required />
                   </div>
+                </div>
+                {/* Item Description */}
+                <div className="input-group" style={{ marginBottom: 0 }}>
+                  <label>Item Description <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: '0.8rem' }}>(optional – shown in PDF)</span></label>
+                  <input type="text" value={item.itemDescription} onChange={e => handleItemChange(index, 'itemDescription', e.target.value)} placeholder="e.g. Additional details, period, scope..." />
                 </div>
 
                 {/* Row 2: HSN/SAC, Rate, Tax */}
