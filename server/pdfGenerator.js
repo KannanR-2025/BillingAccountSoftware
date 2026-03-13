@@ -147,7 +147,7 @@ function generateInvoicePDF(data, stream) {
     };
 
     const subTotal = items.reduce((sum, item) => sum + (parseFloat(item.amount || 0)), 0);
-    drawRow('Sub Total:', subTotal.toFixed(2));
+    drawRow('Sub Total:', subTotal.toFixed(2), true);
     drawRow(`SGST @ ${data.sgstRate || 0}%:`, (data.sgstAmount || 0).toFixed(2));
     drawRow(`CGST @ ${data.cgstRate || 0}%:`, (data.cgstAmount || 0).toFixed(2));
     doc.moveTo(labelX + 30, currentY).lineTo(colEnd, currentY).stroke();
