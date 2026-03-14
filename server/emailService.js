@@ -6,6 +6,7 @@ async function sendInvoiceEmail(invoice, smtpConfig) {
         host: smtpConfig.host,
         port: parseInt(smtpConfig.port) || 587,
         secure: smtpConfig.port == 465,
+        family: 4,
         auth: {
             user: smtpConfig.user,
             pass: smtpConfig.pass,
