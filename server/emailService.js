@@ -1,12 +1,15 @@
 const nodemailer = require("nodemailer");
+const dns = require("dns");
 const { generateInvoicePDF } = require("./pdfGenerator");
 
 async function sendInvoiceEmail(invoice, smtpConfig) {
   const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true,
+    host: smtpConfig.host || "smtp.gmail.com",
+    port: parseInt(smtpConfig.port) || 465,
+    secure: (parseInt(smtpConfig.port) || 465) === 465,
     family: 4,
+    dnsLookup: (hostname, options, callback) =>
+      dns.lookup(hostname, { ...options, family: 4 }, callback),
     auth: {
       user: smtpConfig.user,
       pass: smtpConfig.pass,
