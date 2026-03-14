@@ -4,6 +4,7 @@ const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { generateInvoicePDF } = require('./pdfGenerator');
+const { sendInvoiceEmail } = require('./emailService');
 const db = require('./db');
 
 const app = express();
@@ -44,7 +45,8 @@ const mapCompany = (row) => ({
     ...row,
     bank: row.bank_details,
     logo: row.logo || null,
-    signature: row.signature || null
+    signature: row.signature || null,
+    smtpConfig: row.smtp_config || null
 });
 
 const mapItem = (row) => ({
@@ -192,15 +194,15 @@ app.get('/api/companies', authenticateToken, async (req, res) => {
 });
 
 app.post('/api/companies', authenticateToken, async (req, res) => {
-    const { name, address, gstin, phone, mobile, email, signatory, bank, logo, signature } = req.body;
+    const { name, address, gstin, phone, mobile, email, signatory, bank, logo, signature, smtpConfig } = req.body;
     try {
         const existing = await db.query('SELECT id FROM companies LIMIT 1');
         if (existing.rows.length > 0) {
             return res.status(409).json({ message: 'A company already exists. Use update instead.' });
         }
         const result = await db.query(
-            'INSERT INTO companies (name, address, gstin, phone, mobile, email, signatory, bank_details, logo, signature) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
-            [name, address, gstin, phone, mobile, email, signatory, JSON.stringify(bank), logo || null, signature || null]
+            'INSERT INTO companies (name, address, gstin, phone, mobile, email, signatory, bank_details, logo, signature, smtp_config) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *',
+            [name, address, gstin, phone, mobile, email, signatory, JSON.stringify(bank), logo || null, signature || null, smtpConfig ? JSON.stringify(smtpConfig) : null]
         );
         res.status(201).json(mapCompany(result.rows[0]));
     } catch (err) {
@@ -210,11 +212,11 @@ app.post('/api/companies', authenticateToken, async (req, res) => {
 
 app.put('/api/companies/:id', authenticateToken, async (req, res) => {
     const id = parseInt(req.params.id);
-    const { name, address, gstin, phone, mobile, email, signatory, bank, logo, signature } = req.body;
+    const { name, address, gstin, phone, mobile, email, signatory, bank, logo, signature, smtpConfig } = req.body;
     try {
         const result = await db.query(
-            'UPDATE companies SET name=$1, address=$2, gstin=$3, phone=$4, mobile=$5, email=$6, signatory=$7, bank_details=$8, logo=$9, signature=$10 WHERE id=$11 RETURNING *',
-            [name, address, gstin, phone, mobile, email, signatory, JSON.stringify(bank), logo || null, signature || null, id]
+            'UPDATE companies SET name=$1, address=$2, gstin=$3, phone=$4, mobile=$5, email=$6, signatory=$7, bank_details=$8, logo=$9, signature=$10, smtp_config=$11 WHERE id=$12 RETURNING *',
+            [name, address, gstin, phone, mobile, email, signatory, JSON.stringify(bank), logo || null, signature || null, smtpConfig ? JSON.stringify(smtpConfig) : null, id]
         );
         if (result.rows.length === 0) return res.status(404).send('Company not found');
         res.json(mapCompany(result.rows[0]));
@@ -233,11 +235,11 @@ app.get('/api/customers', authenticateToken, async (req, res) => {
 });
 
 app.post('/api/customers', authenticateToken, async (req, res) => {
-    const { name, address, gstin } = req.body;
+    const { name, address, gstin, email } = req.body;
     try {
         const result = await db.query(
-            'INSERT INTO customers (name, address, gstin) VALUES ($1, $2, $3) RETURNING *',
-            [name, address, gstin]
+            'INSERT INTO customers (name, address, gstin, email) VALUES ($1, $2, $3, $4) RETURNING *',
+            [name, address, gstin, email || null]
         );
         res.status(201).json(result.rows[0]);
     } catch (err) {
@@ -246,12 +248,12 @@ app.post('/api/customers', authenticateToken, async (req, res) => {
 });
 
 app.put('/api/customers/:id', authenticateToken, async (req, res) => {
-    const { name, address, gstin } = req.body;
+    const { name, address, gstin, email } = req.body;
     const id = parseInt(req.params.id);
     try {
         const result = await db.query(
-            'UPDATE customers SET name = $1, address = $2, gstin = $3 WHERE id = $4 RETURNING *',
-            [name, address, gstin, id]
+            'UPDATE customers SET name = $1, address = $2, gstin = $3, email = $4 WHERE id = $5 RETURNING *',
+            [name, address, gstin, email || null, id]
         );
         if (result.rows.length === 0) return res.status(404).send('Customer not found');
         res.json(result.rows[0]);
@@ -458,6 +460,46 @@ app.get('/api/invoices/:id/download', async (req, res) => {
         generateInvoicePDF(formattedInvoice, res);
     } catch (err) {
         res.status(500).send('Server error');
+    }
+});
+
+app.post('/api/invoices/:id/send-email', authenticateToken, async (req, res) => {
+    try {
+        const result = await db.query(`
+            SELECT i.*,
+                   to_jsonb(c) as vendor,
+                   to_jsonb(cust) as customer
+            FROM invoices i
+            JOIN companies c ON i.vendor_id = c.id
+            JOIN customers cust ON i.customer_id = cust.id
+            WHERE i.id = $1
+        `, [parseInt(req.params.id)]);
+
+        const invoice = result.rows[0];
+        if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
+
+        const customer = invoice.customer;
+        if (!customer.email) {
+            return res.status(400).json({ message: 'Customer does not have an email address' });
+        }
+
+        const vendor = mapCompany(invoice.vendor);
+        if (!vendor.smtpConfig || !vendor.smtpConfig.host || !vendor.smtpConfig.user || !vendor.smtpConfig.pass) {
+            return res.status(400).json({ message: 'SMTP settings not configured. Please update Company Settings.' });
+        }
+
+        const formattedInvoice = mapInvoice({
+            ...invoice,
+            vendor,
+            bank: invoice.vendor.bank_details,
+            customer
+        });
+
+        await sendInvoiceEmail(formattedInvoice, vendor.smtpConfig);
+        res.json({ message: `Invoice sent successfully to ${customer.email}` });
+    } catch (err) {
+        console.error('Send email error:', err);
+        res.status(500).json({ message: err.message || 'Failed to send email' });
     }
 });
 

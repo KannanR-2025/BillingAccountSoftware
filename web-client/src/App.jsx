@@ -12,7 +12,9 @@ import {
   Package,
   Edit,
   Trash2,
-  ShieldCheck
+  ShieldCheck,
+  Mail,
+  Send
 } from 'lucide-react';
 import { useParams, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -199,6 +201,7 @@ const Dashboard = () => {
 
 const InvoiceList = () => {
   const [invoices, setInvoices] = useState([]);
+  const [sendingEmail, setSendingEmail] = useState(null);
   const userRole = JSON.parse(localStorage.getItem('user') || '{}').role;
 
   const fetchInvoices = () => {
@@ -216,6 +219,23 @@ const InvoiceList = () => {
       fetchInvoices();
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to delete invoice');
+    }
+  };
+
+  const handleSendEmail = async (inv) => {
+    if (!inv.customer?.email) {
+      alert(`No email address for ${inv.customer.name}. Please update the customer record.`);
+      return;
+    }
+    if (!confirm(`Send invoice ${inv.billNo} to ${inv.customer.email}?`)) return;
+    setSendingEmail(inv.id);
+    try {
+      const res = await API.post(`/invoices/${inv.id}/send-email`);
+      alert(res.data.message);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to send email');
+    } finally {
+      setSendingEmail(null);
     }
   };
 
@@ -273,6 +293,15 @@ const InvoiceList = () => {
                     <button className="btn btn-primary" style={{ padding: '0.6rem 1rem' }} title="Download PDF" onClick={() => window.open(`${API_BASE_URL}/invoices/${inv.id}/download`, '_blank')}>
                       <Download size={16} /> PDF
                     </button>
+                    <button
+                      className="btn"
+                      style={{ padding: '0.6rem 1rem', background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#16a34a', opacity: sendingEmail === inv.id ? 0.6 : 1 }}
+                      title={inv.customer?.email ? `Send to ${inv.customer.email}` : 'No email on record'}
+                      onClick={() => handleSendEmail(inv)}
+                      disabled={sendingEmail === inv.id}
+                    >
+                      <Send size={16} /> {sendingEmail === inv.id ? 'Sending…' : 'Email'}
+                    </button>
                     {userRole === 'admin' && (
                       <button className="btn" onClick={() => handleDelete(inv)} style={{ padding: '0.6rem 1rem', background: '#fef2f2', border: '1px solid #fecaca', color: '#ef4444' }} title="Delete Invoice">
                         <Trash2 size={16} /> Delete
@@ -324,7 +353,7 @@ const MasterPage = ({ type }) => {
   const [items, setItems] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
-  const [formData, setFormData] = useState({ name: '', address: '', gstin: '', sacCode: '', price: '', description: '', taxPercentage: '' });
+  const [formData, setFormData] = useState({ name: '', address: '', gstin: '', email: '', sacCode: '', price: '', description: '', taxPercentage: '' });
   const userRole = JSON.parse(localStorage.getItem('user') || '{}').role;
 
   useEffect(() => {
@@ -352,6 +381,7 @@ const MasterPage = ({ type }) => {
       name: item.name,
       address: item.address || '',
       gstin: item.gstin || '',
+      email: item.email || '',
       sacCode: item.sacCode || '',
       price: item.price || '',
       description: item.description || '',
@@ -379,7 +409,7 @@ const MasterPage = ({ type }) => {
       }
       setShowForm(false);
       setEditingItem(null);
-      setFormData({ name: '', address: '', gstin: '', sacCode: '', price: '', description: '', taxPercentage: '' });
+      setFormData({ name: '', address: '', gstin: '', email: '', sacCode: '', price: '', description: '', taxPercentage: '' });
       fetchItems();
     } catch (err) {
       alert('Operation failed');
@@ -395,7 +425,7 @@ const MasterPage = ({ type }) => {
         </div>
         <button className="btn btn-primary" onClick={() => {
           setEditingItem(null);
-          setFormData({ name: '', address: '', gstin: '', sacCode: '', price: '', description: '', taxPercentage: '' });
+          setFormData({ name: '', address: '', gstin: '', email: '', sacCode: '', price: '', description: '', taxPercentage: '' });
           setShowForm(true);
         }}>
           <Plus size={20} /> Add {type}
@@ -425,6 +455,12 @@ const MasterPage = ({ type }) => {
                   <label>GSTIN</label>
                   <input type="text" value={formData.gstin} onChange={e => setFormData({ ...formData, gstin: e.target.value })} />
                 </div>
+                {type === 'Customer' && (
+                  <div className="input-group">
+                    <label>Email</label>
+                    <input type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} placeholder="customer@example.com" />
+                  </div>
+                )}
               </>
             )}
             {type === 'Item' && (
@@ -480,6 +516,7 @@ const MasterPage = ({ type }) => {
                   <>
                     <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.25rem', maxWidth: '500px' }}>{item.address}</p>
                     {item.gstin && <p style={{ fontSize: '0.75rem', color: 'var(--secondary)', fontWeight: 600, marginTop: '0.5rem' }}>GSTIN: {item.gstin}</p>}
+                    {item.email && <p style={{ fontSize: '0.75rem', color: 'var(--primary)', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Mail size={12} /> {item.email}</p>}
                   </>
                 )}
               </div>
@@ -506,7 +543,8 @@ const CompanySettings = () => {
     name: '', address: '', gstin: '', phone: '', mobile: '', email: '', signatory: '',
     bank: { bankName: '', accountNo: '', ifsc: '' },
     logo: null,
-    signature: null
+    signature: null,
+    smtpConfig: { host: '', port: '587', user: '', pass: '', fromName: '' }
   });
   const [logoPreview, setLogoPreview] = useState(null);
   const [signaturePreview, setSignaturePreview] = useState(null);
@@ -522,7 +560,8 @@ const CompanySettings = () => {
           signatory: c.signatory || '',
           bank: c.bank || { bankName: '', accountNo: '', ifsc: '' },
           logo: c.logo || null,
-          signature: c.signature || null
+          signature: c.signature || null,
+          smtpConfig: c.smtpConfig || { host: '', port: '587', user: '', pass: '', fromName: '' }
         });
         if (c.logo) setLogoPreview(c.logo);
         if (c.signature) setSignaturePreview(c.signature);
@@ -693,6 +732,35 @@ const CompanySettings = () => {
                 <input type="file" accept="image/*" onChange={handleSignatureChange} style={{ display: 'none' }} />
               </label>
               <p style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>PNG or JPG. Will appear on invoices.</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="card shadow" style={{ marginBottom: '1.5rem' }}>
+          <h3 style={{ marginBottom: '0.5rem', fontSize: '1.1rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Mail size={18} /> Email / SMTP Settings
+          </h3>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>Configure your outgoing mail server to send invoices directly to customers.</p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 1.5rem' }}>
+            <div className="input-group">
+              <label>SMTP Host</label>
+              <input type="text" placeholder="smtp.gmail.com" value={formData.smtpConfig?.host || ''} onChange={e => setFormData({ ...formData, smtpConfig: { ...formData.smtpConfig, host: e.target.value } })} />
+            </div>
+            <div className="input-group">
+              <label>SMTP Port</label>
+              <input type="number" placeholder="587" value={formData.smtpConfig?.port || ''} onChange={e => setFormData({ ...formData, smtpConfig: { ...formData.smtpConfig, port: e.target.value } })} />
+            </div>
+            <div className="input-group">
+              <label>SMTP Username / Email</label>
+              <input type="text" placeholder="you@gmail.com" value={formData.smtpConfig?.user || ''} onChange={e => setFormData({ ...formData, smtpConfig: { ...formData.smtpConfig, user: e.target.value } })} />
+            </div>
+            <div className="input-group">
+              <label>SMTP Password / App Password</label>
+              <input type="password" placeholder="••••••••" value={formData.smtpConfig?.pass || ''} onChange={e => setFormData({ ...formData, smtpConfig: { ...formData.smtpConfig, pass: e.target.value } })} />
+            </div>
+            <div className="input-group" style={{ marginBottom: 0 }}>
+              <label>From Name (optional)</label>
+              <input type="text" placeholder="e.g. Acme Pvt Ltd" value={formData.smtpConfig?.fromName || ''} onChange={e => setFormData({ ...formData, smtpConfig: { ...formData.smtpConfig, fromName: e.target.value } })} />
             </div>
           </div>
         </div>
