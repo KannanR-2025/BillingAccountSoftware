@@ -13,10 +13,9 @@ const port = process.env.PORT || 3000;
 // Temporary debug endpoint — remove after confirming env vars
 app.get('/api/debug-env', (req, res) => {
     res.json({
-        GMAIL_CLIENT_ID: !!process.env.GMAIL_CLIENT_ID,
-        GMAIL_CLIENT_SECRET: !!process.env.GMAIL_CLIENT_SECRET,
-        GMAIL_REFRESH_TOKEN: !!process.env.GMAIL_REFRESH_TOKEN,
-        GMAIL_USER: !!process.env.GMAIL_USER,
+        CLIENT_ID: process.env.GMAIL_CLIENT_ID,
+        SECRET: process.env.GMAIL_CLIENT_SECRET,
+        USER: process.env.GMAIL_USER
     });
 });
 const SECRET_KEY = 'billing-software-secret';
