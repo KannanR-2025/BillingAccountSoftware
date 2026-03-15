@@ -1,11 +1,18 @@
-const { Resend } = require("resend");
+const nodemailer = require("nodemailer");
 const { generateInvoicePDF } = require("./pdfGenerator");
 
-const RESEND_API_KEY = "re_Xy5jgGr4_BtGCCrkGmRsMJCwQ6sBhGkCT";
-const resend = new Resend(RESEND_API_KEY);
+const GMAIL_USER = "kannanclientsdb@gmail.com";
+const GMAIL_APP_PASSWORD = "paqjkliqljwdckxb";
+
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: GMAIL_USER,
+    pass: GMAIL_APP_PASSWORD,
+  },
+});
 
 async function sendInvoiceEmail(invoice, smtpConfig) {
-  // Generate PDF into a buffer
   const pdfBuffer = await new Promise((resolve, reject) => {
     const { PassThrough } = require("stream");
     const pass = new PassThrough();
@@ -21,9 +28,9 @@ async function sendInvoiceEmail(invoice, smtpConfig) {
   const vendorName = invoice.vendor?.name || "Your Vendor";
   const fromName = smtpConfig?.fromName || vendorName;
 
-  const { data, error } = await resend.emails.send({
-    from: `${fromName} <onboarding@resend.dev>`,
-    to: [invoice.customer.email],
+  const info = await transporter.sendMail({
+    from: `"${fromName}" <${GMAIL_USER}>`,
+    to: invoice.customer.email,
     subject: `Invoice ${billNo} from ${vendorName}`,
     html: `
       <p>Dear ${customerName},</p>
@@ -35,16 +42,13 @@ async function sendInvoiceEmail(invoice, smtpConfig) {
     attachments: [
       {
         filename: `invoice_${billNo}.pdf`,
-        content: pdfBuffer.toString("base64"),
+        content: pdfBuffer,
+        contentType: "application/pdf",
       },
     ],
   });
 
-  if (error) {
-    throw new Error(error.message || "Failed to send email via Resend");
-  }
-
-  return data;
+  return info;
 }
 
 module.exports = { sendInvoiceEmail };
