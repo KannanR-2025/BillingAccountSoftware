@@ -10,14 +10,6 @@ const db = require('./db');
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Temporary debug endpoint — remove after confirming env vars
-app.get('/api/debug-env', (req, res) => {
-    res.json({
-        CLIENT_ID: process.env.GMAIL_CLIENT_ID,
-        SECRET: process.env.GMAIL_CLIENT_SECRET,
-        USER: process.env.GMAIL_USER
-    });
-});
 const SECRET_KEY = 'billing-software-secret';
 
 app.use(cors({
