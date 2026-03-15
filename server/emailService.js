@@ -1,21 +1,13 @@
+const { google } = require("googleapis");
 const nodemailer = require("nodemailer");
 const { generateInvoicePDF } = require("./pdfGenerator");
 
-const CLIENT_ID = process.env.GMAIL_CLIENT_ID;
-const CLIENT_SECRET = process.env.GMAIL_CLIENT_SECRET;
-const REFRESH_TOKEN = process.env.GMAIL_REFRESH_TOKEN;
-const GMAIL_USER = process.env.GMAIL_USER;
-
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    type: "OAuth2",
-    user: GMAIL_USER,
-    clientId: CLIENT_ID,
-    clientSecret: CLIENT_SECRET,
-    refreshToken: REFRESH_TOKEN,
-  },
-});
+const oauth2Client = new google.auth.OAuth2(
+  process.env.GMAIL_CLIENT_ID,
+  process.env.GMAIL_CLIENT_SECRET,
+  "http://localhost:3001/callback"
+);
+oauth2Client.setCredentials({ refresh_token: process.env.GMAIL_REFRESH_TOKEN });
 
 async function sendInvoiceEmail(invoice, smtpConfig) {
   const pdfBuffer = await new Promise((resolve, reject) => {
@@ -32,9 +24,17 @@ async function sendInvoiceEmail(invoice, smtpConfig) {
   const billNo = invoice.billNo || invoice.bill_no;
   const vendorName = invoice.vendor?.name || "Your Vendor";
   const fromName = smtpConfig?.fromName || vendorName;
+  const gmailUser = process.env.GMAIL_USER;
 
-  const info = await transporter.sendMail({
-    from: `"${fromName}" <${GMAIL_USER}>`,
+  // Build MIME message using nodemailer stream transport (no sending)
+  const transport = nodemailer.createTransport({
+    streamTransport: true,
+    newline: "unix",
+    buffer: true,
+  });
+
+  const { message } = await transport.sendMail({
+    from: `"${fromName}" <${gmailUser}>`,
     to: invoice.customer.email,
     subject: `Invoice ${billNo} from ${vendorName}`,
     html: `
@@ -53,7 +53,21 @@ async function sendInvoiceEmail(invoice, smtpConfig) {
     ],
   });
 
-  return info;
+  // Encode as base64url for Gmail REST API
+  const raw = message
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+
+  // Send via Gmail REST API (HTTPS — works on Railway)
+  const gmail = google.gmail({ version: "v1", auth: oauth2Client });
+  const result = await gmail.users.messages.send({
+    userId: "me",
+    requestBody: { raw },
+  });
+
+  return result.data;
 }
 
 module.exports = { sendInvoiceEmail };
