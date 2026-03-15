@@ -1,16 +1,7 @@
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 const { generateInvoicePDF } = require("./pdfGenerator");
 
-const GMAIL_USER = "kannanclientsdb@gmail.com";
-const GMAIL_APP_PASSWORD = "paqjkliqljwdckxb";
-
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: GMAIL_USER,
-    pass: GMAIL_APP_PASSWORD,
-  },
-});
+const resend = new Resend("re_Xy5jgGr4_BtGCCrkGmRsMJCwQ6sBhGkCT");
 
 async function sendInvoiceEmail(invoice, smtpConfig) {
   const pdfBuffer = await new Promise((resolve, reject) => {
@@ -28,9 +19,9 @@ async function sendInvoiceEmail(invoice, smtpConfig) {
   const vendorName = invoice.vendor?.name || "Your Vendor";
   const fromName = smtpConfig?.fromName || vendorName;
 
-  const info = await transporter.sendMail({
-    from: `"${fromName}" <${GMAIL_USER}>`,
-    to: invoice.customer.email,
+  const { data, error } = await resend.emails.send({
+    from: `${fromName} <onboarding@resend.dev>`,
+    to: [invoice.customer.email],
     subject: `Invoice ${billNo} from ${vendorName}`,
     html: `
       <p>Dear ${customerName},</p>
@@ -42,13 +33,13 @@ async function sendInvoiceEmail(invoice, smtpConfig) {
     attachments: [
       {
         filename: `invoice_${billNo}.pdf`,
-        content: pdfBuffer,
-        contentType: "application/pdf",
+        content: pdfBuffer.toString("base64"),
       },
     ],
   });
 
-  return info;
+  if (error) throw new Error(error.message || "Failed to send email via Resend");
+  return data;
 }
 
 module.exports = { sendInvoiceEmail };
