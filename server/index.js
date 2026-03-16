@@ -499,8 +499,9 @@ app.post('/api/invoices/:id/send-email', authenticateToken, async (req, res) => 
         await sendInvoiceEmail(formattedInvoice, vendor.gmailConfig);
         res.json({ message: `Invoice sent successfully to ${customer.email}` });
     } catch (err) {
-        console.error('Send email error:', err);
-        res.status(500).json({ message: err.message || 'Failed to send email' });
+        console.error('Send email error:', err?.response?.data || err.message || err);
+        const detail = err?.response?.data?.error || err?.response?.data?.error_description || err.message || 'Failed to send email';
+        res.status(500).json({ message: detail });
     }
 });
 
