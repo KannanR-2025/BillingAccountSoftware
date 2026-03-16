@@ -544,7 +544,7 @@ const CompanySettings = () => {
     bank: { bankName: '', accountNo: '', ifsc: '' },
     logo: null,
     signature: null,
-    smtpConfig: { host: '', port: '587', user: '', pass: '', fromName: '' }
+    gmailConfig: { clientId: '', clientSecret: '', refreshToken: '', gmailUser: '', fromName: '' }
   });
   const [logoPreview, setLogoPreview] = useState(null);
   const [signaturePreview, setSignaturePreview] = useState(null);
@@ -561,7 +561,7 @@ const CompanySettings = () => {
           bank: c.bank || { bankName: '', accountNo: '', ifsc: '' },
           logo: c.logo || null,
           signature: c.signature || null,
-          smtpConfig: c.smtpConfig || { host: '', port: '587', user: '', pass: '', fromName: '' }
+          gmailConfig: c.gmailConfig || { clientId: '', clientSecret: '', refreshToken: '', gmailUser: '', fromName: '' }
         });
         if (c.logo) setLogoPreview(c.logo);
         if (c.signature) setSignaturePreview(c.signature);
@@ -738,29 +738,29 @@ const CompanySettings = () => {
 
         <div className="card shadow" style={{ marginBottom: '1.5rem' }}>
           <h3 style={{ marginBottom: '0.5rem', fontSize: '1.1rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Mail size={18} /> Email / SMTP Settings
+            <Mail size={18} /> Gmail API Settings
           </h3>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>Configure your outgoing mail server to send invoices directly to customers.</p>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>Configure Gmail API credentials to send invoices directly to customers.</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 1.5rem' }}>
             <div className="input-group">
-              <label>SMTP Host</label>
-              <input type="text" placeholder="smtp.gmail.com" value={formData.smtpConfig?.host || ''} onChange={e => setFormData({ ...formData, smtpConfig: { ...formData.smtpConfig, host: e.target.value } })} />
+              <label>Client ID</label>
+              <input type="text" placeholder="your-client-id.apps.googleusercontent.com" value={formData.gmailConfig?.clientId || ''} onChange={e => setFormData({ ...formData, gmailConfig: { ...formData.gmailConfig, clientId: e.target.value } })} />
             </div>
             <div className="input-group">
-              <label>SMTP Port</label>
-              <input type="number" placeholder="587" value={formData.smtpConfig?.port || ''} onChange={e => setFormData({ ...formData, smtpConfig: { ...formData.smtpConfig, port: e.target.value } })} />
+              <label>Client Secret</label>
+              <input type="password" placeholder="GOCSPX-..." value={formData.gmailConfig?.clientSecret || ''} onChange={e => setFormData({ ...formData, gmailConfig: { ...formData.gmailConfig, clientSecret: e.target.value } })} />
             </div>
             <div className="input-group">
-              <label>SMTP Username / Email</label>
-              <input type="text" placeholder="you@gmail.com" value={formData.smtpConfig?.user || ''} onChange={e => setFormData({ ...formData, smtpConfig: { ...formData.smtpConfig, user: e.target.value } })} />
+              <label>Refresh Token</label>
+              <input type="password" placeholder="1//0g..." value={formData.gmailConfig?.refreshToken || ''} onChange={e => setFormData({ ...formData, gmailConfig: { ...formData.gmailConfig, refreshToken: e.target.value } })} />
             </div>
             <div className="input-group">
-              <label>SMTP Password / App Password</label>
-              <input type="password" placeholder="••••••••" value={formData.smtpConfig?.pass || ''} onChange={e => setFormData({ ...formData, smtpConfig: { ...formData.smtpConfig, pass: e.target.value } })} />
+              <label>Gmail Address</label>
+              <input type="text" placeholder="you@gmail.com" value={formData.gmailConfig?.gmailUser || ''} onChange={e => setFormData({ ...formData, gmailConfig: { ...formData.gmailConfig, gmailUser: e.target.value } })} />
             </div>
             <div className="input-group" style={{ marginBottom: 0 }}>
               <label>From Name (optional)</label>
-              <input type="text" placeholder="e.g. Acme Pvt Ltd" value={formData.smtpConfig?.fromName || ''} onChange={e => setFormData({ ...formData, smtpConfig: { ...formData.smtpConfig, fromName: e.target.value } })} />
+              <input type="text" placeholder="e.g. Acme Pvt Ltd" value={formData.gmailConfig?.fromName || ''} onChange={e => setFormData({ ...formData, gmailConfig: { ...formData.gmailConfig, fromName: e.target.value } })} />
             </div>
           </div>
         </div>

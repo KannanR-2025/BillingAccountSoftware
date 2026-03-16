@@ -46,7 +46,7 @@ const initDb = async () => {
 
             ALTER TABLE companies ADD COLUMN IF NOT EXISTS logo TEXT;
             ALTER TABLE companies ADD COLUMN IF NOT EXISTS signature TEXT;
-            ALTER TABLE companies ADD COLUMN IF NOT EXISTS smtp_config JSONB;
+            ALTER TABLE companies ADD COLUMN IF NOT EXISTS gmail_config JSONB;
 
             CREATE TABLE IF NOT EXISTS customers (
                 id SERIAL PRIMARY KEY,

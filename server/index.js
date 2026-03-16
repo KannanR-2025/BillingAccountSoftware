@@ -47,7 +47,7 @@ const mapCompany = (row) => ({
     bank: row.bank_details,
     logo: row.logo || null,
     signature: row.signature || null,
-    smtpConfig: row.smtp_config || null
+    gmailConfig: row.gmail_config || null
 });
 
 const mapItem = (row) => ({
@@ -195,15 +195,15 @@ app.get('/api/companies', authenticateToken, async (req, res) => {
 });
 
 app.post('/api/companies', authenticateToken, async (req, res) => {
-    const { name, address, gstin, phone, mobile, email, signatory, bank, logo, signature, smtpConfig } = req.body;
+    const { name, address, gstin, phone, mobile, email, signatory, bank, logo, signature, gmailConfig } = req.body;
     try {
         const existing = await db.query('SELECT id FROM companies LIMIT 1');
         if (existing.rows.length > 0) {
             return res.status(409).json({ message: 'A company already exists. Use update instead.' });
         }
         const result = await db.query(
-            'INSERT INTO companies (name, address, gstin, phone, mobile, email, signatory, bank_details, logo, signature, smtp_config) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *',
-            [name, address, gstin, phone, mobile, email, signatory, JSON.stringify(bank), logo || null, signature || null, smtpConfig ? JSON.stringify(smtpConfig) : null]
+            'INSERT INTO companies (name, address, gstin, phone, mobile, email, signatory, bank_details, logo, signature, gmail_config) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *',
+            [name, address, gstin, phone, mobile, email, signatory, JSON.stringify(bank), logo || null, signature || null, gmailConfig ? JSON.stringify(gmailConfig) : null]
         );
         res.status(201).json(mapCompany(result.rows[0]));
     } catch (err) {
@@ -213,11 +213,11 @@ app.post('/api/companies', authenticateToken, async (req, res) => {
 
 app.put('/api/companies/:id', authenticateToken, async (req, res) => {
     const id = parseInt(req.params.id);
-    const { name, address, gstin, phone, mobile, email, signatory, bank, logo, signature, smtpConfig } = req.body;
+    const { name, address, gstin, phone, mobile, email, signatory, bank, logo, signature, gmailConfig } = req.body;
     try {
         const result = await db.query(
-            'UPDATE companies SET name=$1, address=$2, gstin=$3, phone=$4, mobile=$5, email=$6, signatory=$7, bank_details=$8, logo=$9, signature=$10, smtp_config=$11 WHERE id=$12 RETURNING *',
-            [name, address, gstin, phone, mobile, email, signatory, JSON.stringify(bank), logo || null, signature || null, smtpConfig ? JSON.stringify(smtpConfig) : null, id]
+            'UPDATE companies SET name=$1, address=$2, gstin=$3, phone=$4, mobile=$5, email=$6, signatory=$7, bank_details=$8, logo=$9, signature=$10, gmail_config=$11 WHERE id=$12 RETURNING *',
+            [name, address, gstin, phone, mobile, email, signatory, JSON.stringify(bank), logo || null, signature || null, gmailConfig ? JSON.stringify(gmailConfig) : null, id]
         );
         if (result.rows.length === 0) return res.status(404).send('Company not found');
         res.json(mapCompany(result.rows[0]));
@@ -485,8 +485,8 @@ app.post('/api/invoices/:id/send-email', authenticateToken, async (req, res) => 
         }
 
         const vendor = mapCompany(invoice.vendor);
-        if (!vendor.smtpConfig || !vendor.smtpConfig.host || !vendor.smtpConfig.user || !vendor.smtpConfig.pass) {
-            return res.status(400).json({ message: 'SMTP settings not configured. Please update Company Settings.' });
+        if (!vendor.gmailConfig || !vendor.gmailConfig.clientId || !vendor.gmailConfig.clientSecret || !vendor.gmailConfig.refreshToken || !vendor.gmailConfig.gmailUser) {
+            return res.status(400).json({ message: 'Gmail API settings not configured. Please update Company Settings.' });
         }
 
         const formattedInvoice = mapInvoice({
@@ -496,7 +496,7 @@ app.post('/api/invoices/:id/send-email', authenticateToken, async (req, res) => 
             customer
         });
 
-        await sendInvoiceEmail(formattedInvoice, vendor.smtpConfig);
+        await sendInvoiceEmail(formattedInvoice, vendor.gmailConfig);
         res.json({ message: `Invoice sent successfully to ${customer.email}` });
     } catch (err) {
         console.error('Send email error:', err);
