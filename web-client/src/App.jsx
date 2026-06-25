@@ -14,7 +14,8 @@ import {
   Trash2,
   ShieldCheck,
   Mail,
-  Send
+  Send,
+  Search
 } from 'lucide-react';
 import { useParams, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -354,10 +355,19 @@ const MasterPage = ({ type }) => {
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [formData, setFormData] = useState({ name: '', address: '', gstin: '', email: '', sacCode: '', price: '', description: '', taxPercentage: '' });
+  const [searchTerm, setSearchTerm] = useState('');
   const userRole = JSON.parse(localStorage.getItem('user') || '{}').role;
+
+  const filteredItems = items.filter(item => {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return true;
+    return [item.name, item.address, item.gstin, item.email, item.sacCode, item.description]
+      .some(field => field && field.toString().toLowerCase().includes(term));
+  });
 
   useEffect(() => {
     fetchItems();
+    setSearchTerm('');
   }, [type]);
 
   const fetchItems = () => {
@@ -423,17 +433,34 @@ const MasterPage = ({ type }) => {
           <h1 style={{ fontWeight: 700 }}>{type} Master</h1>
           <p style={{ color: 'var(--text-muted)' }}>Manage your {type.toLowerCase()} records</p>
         </div>
-        <button className="btn btn-primary" onClick={() => {
-          setEditingItem(null);
-          setFormData({ name: '', address: '', gstin: '', email: '', sacCode: '', price: '', description: '', taxPercentage: '' });
-          setShowForm(true);
-        }}>
-          <Plus size={20} /> Add {type}
-        </button>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <div style={{ position: 'relative' }}>
+            <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <input
+              type="text"
+              placeholder={`Search ${type.toLowerCase()}s...`}
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              style={{ padding: '0.65rem 1rem 0.65rem 2.25rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', width: '240px' }}
+            />
+          </div>
+          <button className="btn btn-primary" onClick={() => {
+            setEditingItem(null);
+            setFormData({ name: '', address: '', gstin: '', email: '', sacCode: '', price: '', description: '', taxPercentage: '' });
+            setShowForm(true);
+          }}>
+            <Plus size={20} /> Add {type}
+          </button>
+        </div>
       </header>
 
       {showForm && (
-        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="card shadow" style={{ marginBottom: '2rem' }}>
+        <div className="modal-overlay" onClick={() => setShowForm(false)}>
+          <motion.div
+            initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}
+            className="card shadow modal-content"
+            onClick={e => e.stopPropagation()}
+          >
           <h3>{editingItem ? 'Edit' : 'Add'} {type}</h3>
           <form onSubmit={handleSubmit} style={{ marginTop: '1.5rem' }}>
             <div className="input-group">
@@ -492,14 +519,17 @@ const MasterPage = ({ type }) => {
               <button type="button" className="btn" onClick={() => setShowForm(false)}>Cancel</button>
             </div>
           </form>
-        </motion.div>
+          </motion.div>
+        </div>
       )}
 
       <div className="card shadow" style={{ padding: 0, overflow: 'hidden' }}>
-        {items.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>No {type.toLowerCase()}s found.</div>
+        {filteredItems.length === 0 ? (
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+            {items.length === 0 ? `No ${type.toLowerCase()}s found.` : `No ${type.toLowerCase()}s match "${searchTerm}".`}
+          </div>
         ) : (
-          items.map(item => (
+          filteredItems.map(item => (
             <div key={item.id} style={{ padding: '1.5rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <strong style={{ fontSize: '1.1rem', display: 'block' }}>{item.name}</strong>
